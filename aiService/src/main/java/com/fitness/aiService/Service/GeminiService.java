@@ -1,43 +1,48 @@
 package com.fitness.aiService.Service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import java.util.Map;
 
 @Service
 public class GeminiService {
 
     private final WebClient webClient;
 
-    @Value("${gemini.api.url}")
-    private String geminiApiUrl;
+    // ✅ URL ENV / YML se
+    @Value("${GEMINI_API_URL}")
+    private String geminiUrl;
 
-    @Value("${gemini.api.key}")
+    // ✅ API KEY ENV se
+    @Value("${GEMINI_API_KEY}")
     private String geminiApiKey;
 
-    public GeminiService(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.build();
+    public GeminiService(WebClient.Builder builder) {
+        this.webClient = builder.build();
     }
 
-    public String getAnswer(String question) {
-        Map<String, Object> requestBody = Map.of(
-                "contents", new Object[] {
-                        Map.of("parts", new Object[]{
-                                Map.of("text", question)
-                        })
-                }
-        );
+    // ✅ ONLY THIS METHOD
+    public String getAnswer(String prompt) {
 
-        String response = webClient.post()
-                .uri(geminiApiUrl + geminiApiKey)
-                .header("Content-Type", "application/json")
+        String requestBody = """
+        {
+          "contents": [
+            {
+              "parts": [
+                { "text": "%s" }
+              ]
+            }
+          ]
+        }
+        """.formatted(prompt);
+
+        return webClient.post()
+                .uri(geminiUrl + "?key=" + geminiApiKey)
+                .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
-
-        return response;
     }
 }

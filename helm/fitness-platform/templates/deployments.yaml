@@ -1,0 +1,97 @@
+{{- range $name, $config := .Values.services }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version }}
+spec:
+  replicas: {{ $config.replicas | default 2 }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ $config.port }}"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: "{{ $.Values.image.registry }}/{{ $name }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $config.port }}
+          envFrom:
+            - configMapRef:
+                name: app-config
+            {{- if $config.secrets }}
+            {{- range $config.secrets }}
+            - secretRef:
+                name: {{ . }}
+            {{- end }}
+            {{- end }}
+          resources:
+            {{- if $config.resources }}
+            {{- toYaml $config.resources | nindent 12 }}
+            {{- else }}
+            {{- toYaml $.Values.resources.default | nindent 12 }}
+            {{- end }}
+          {{- if $config.healthPath }}
+          readinessProbe:
+            httpGet:
+              path: {{ $config.healthPath }}
+              port: {{ $config.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ $config.healthPath }}
+              port: {{ $config.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  {{- if eq $name "gateway" }}
+  type: LoadBalancer
+  {{- end }}
+  selector:
+    app: {{ $name }}
+  ports:
+    - port: {{ $config.port }}
+      targetPort: {{ $config.port }}
+---
+{{- if and $.Values.autoscaling.enabled (gt ($config.replicas | default 2 | int) 1) }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}-hpa
+  namespace: {{ $.Values.namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ $.Values.autoscaling.minReplicas }}
+  maxReplicas: {{ $.Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $.Values.autoscaling.targetCPUUtilization }}
+---
+{{- end }}
+{{- end }}

@@ -1,0 +1,40 @@
+# Production overrides
+replicas:
+  eureka: 2
+  gateway: 3
+  userService: 3
+  authService: 3
+  activityService: 3
+  aiService: 3
+  notificationService: 2
+  analyticsService: 3
+  frontend: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilization: 60
+
+resources:
+  default:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  aiService:
+    requests:
+      memory: "1Gi"
+      cpu: "1000m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+
+# Override in CI/CD pipeline with real secrets
+secrets:
+  dbUsername: prod-user
+  dbPassword: OVERRIDE_IN_PIPELINE
+  jwtSecret: OVERRIDE_IN_PIPELINE
+  geminiApiKey: OVERRIDE_IN_PIPELINE

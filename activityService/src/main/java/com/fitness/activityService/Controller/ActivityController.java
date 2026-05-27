@@ -3,6 +3,7 @@ package com.fitness.activityService.Controller;
 import com.fitness.activityService.Service.ActivityService;
 import com.fitness.activityService.dto.ActivityRequest;
 import com.fitness.activityService.dto.ActivityResponse;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ import java.util.List;
 public class ActivityController {
     private ActivityService activityService;
     @PostMapping
-    public ResponseEntity<ActivityResponse> trackActivity(@RequestBody ActivityRequest request) {
+    public ResponseEntity<ActivityResponse> trackActivity(@Valid @RequestBody ActivityRequest request) {
         return ResponseEntity.ok(activityService.trackActivity(request));
     }
     @GetMapping

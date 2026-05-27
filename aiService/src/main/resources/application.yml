@@ -10,26 +10,44 @@ spring:
       uri: mongodb://localhost:27017/fitnessrecommendation
       database: fitnessrecommendation
 
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ai-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
 
-  eureka:
-    client:
-      service-url:
-        defaultZone: http://localhost:8761/eureka/
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
 
-rabbitmq:
-  exchange:
-    name: fitness.exchange
-  queue:
-    name: activity.queue
-  routing:
-    key: activity.track
+# ===============================
+# Gemini AI Configuration
+# ===============================
+GEMINI_API_URL: https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent
+GEMINI_API_KEY: ${GEMINI_API_KEY:your-api-key-here}
 
-gemini:
-  api:
-    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=
-    key: ${GEMINI_API_KEY}
+# ===============================
+# Actuator Configuration
+# ===============================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+  metrics:
+    tags:
+      application: ai-service

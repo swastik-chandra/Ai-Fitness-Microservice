@@ -1,0 +1,14 @@
+apiVersion: v2
+name: fitness-platform
+description: AI Fitness Microservice Platform Helm Chart
+version: 1.0.0
+appVersion: "2.0.0"
+type: application
+keywords:
+  - fitness
+  - microservices
+  - spring-boot
+  - nextjs
+  - ai
+maintainers:
+  - name: FitAI Team

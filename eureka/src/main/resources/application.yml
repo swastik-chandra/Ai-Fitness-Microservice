@@ -10,5 +10,14 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
 
-
-
+# ===============================
+# Actuator Configuration
+# ===============================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

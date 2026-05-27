@@ -5,14 +5,11 @@ import com.fitness.activityService.dto.ActivityRequest;
 import com.fitness.activityService.dto.ActivityResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
 
 @Slf4j
 @Service
@@ -21,14 +18,11 @@ public class ActivityService {
 
     private final ActivityRepository activityRepository;
     private final UserValidationService userValidationService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private final RabbitTemplate rabbitTemplate;
-    @Value("${rabbitmq.exchange.name}")
-    private String exchange;
-    @Value("${rabbitmq.routing.key}")
-    private String routingKey;
+    private static final String ACTIVITY_TOPIC = "activity.tracked";
 
-    public @Nullable ActivityResponse trackActivity(ActivityRequest request) {
+    public ActivityResponse trackActivity(ActivityRequest request) {
 
         boolean isValidUser = userValidationService.validateUser(request.getUserId());
         if (!isValidUser) {
@@ -46,13 +40,12 @@ public class ActivityService {
 
         Activity savedActivity = activityRepository.save(activity);
 
-
-        //publish to rabbitMq for Ai Processing
+        // Publish to Kafka for AI + Analytics + Notification processing
         try {
-            rabbitTemplate.convertAndSend(exchange, routingKey, savedActivity);
+            kafkaTemplate.send(ACTIVITY_TOPIC, savedActivity.getUserId(), savedActivity);
+            log.info("Published activity {} to Kafka topic: {}", savedActivity.getId(), ACTIVITY_TOPIC);
         } catch (Exception e) {
-            log.error("failed to publish activity to RabbitMQ : ", e);
-
+            log.error("Failed to publish activity to Kafka: ", e);
         }
         return mapToResponse(savedActivity);
     }
@@ -69,11 +62,9 @@ public class ActivityService {
         response.setCreatedAt(activity.getCreatedAt());
         response.setUpdatedAt(activity.getUpdatedAt());
         return response;
-
-
     }
 
-    public @Nullable List<ActivityResponse> getUserActivities(String userId) {
+    public List<ActivityResponse> getUserActivities(String userId) {
         List<Activity> activities = activityRepository.findByUserId(userId);
         return activities.stream()
                 .map(this::mapToResponse)
@@ -81,11 +72,8 @@ public class ActivityService {
     }
 
     public ActivityResponse getActivityById(String activityId) {
-
         return activityRepository.findById(activityId)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new RuntimeException("Activity Not Found With Id:" + activityId));
-
-
     }
 }

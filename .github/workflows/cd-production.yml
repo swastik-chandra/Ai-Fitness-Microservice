@@ -1,0 +1,57 @@
+name: CD Production
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/fitness-platform
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install fitness-platform \
+            ./helm/fitness-platform \
+            -f ./helm/fitness-platform/values-prod.yaml \
+            --namespace fitness-platform \
+            --create-namespace \
+            --set image.tag=${{ github.sha }} \
+            --set secrets.dbPassword=${{ secrets.DB_PASSWORD }} \
+            --set secrets.jwtSecret=${{ secrets.JWT_SECRET }} \
+            --set secrets.geminiApiKey=${{ secrets.GEMINI_API_KEY }} \
+            --wait --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n fitness-platform
+          kubectl get services -n fitness-platform
+          kubectl get hpa -n fitness-platform
+
+      - name: Health check
+        run: |
+          GATEWAY_URL=$(kubectl get service gateway-service -n fitness-platform -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          curl -f http://$GATEWAY_URL/actuator/health || echo "Health check pending..."

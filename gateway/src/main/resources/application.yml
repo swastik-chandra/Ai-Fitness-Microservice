@@ -1,0 +1,146 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      routes:
+        # ===============================
+        # Auth Service Routes (Public)
+        # ===============================
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*), /api/auth/${segment}
+
+        # ===============================
+        # User Service Routes (Legacy + Profile)
+        # ===============================
+        - id: user-service-auth
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/register,/api/users/login
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}
+
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}
+
+        # ===============================
+        # Activity Service Routes
+        # ===============================
+        - id: activity-service
+          uri: lb://activity-service
+          predicates:
+            - Path=/api/activities/**
+          filters:
+            - RewritePath=/api/activities/(?<segment>.*), /api/activities/${segment}
+
+        # ===============================
+        # AI Service Routes
+        # ===============================
+        - id: ai-service
+          uri: lb://ai-service
+          predicates:
+            - Path=/api/recommendations/**,/api/ai/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /api/${segment}
+
+        # ===============================
+        # Notification Service Routes
+        # ===============================
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - RewritePath=/api/notifications/(?<segment>.*), /api/notifications/${segment}
+
+        - id: notification-ws
+          uri: lb:ws://notification-service
+          predicates:
+            - Path=/ws/notifications/**
+
+        # ===============================
+        # Analytics Service Routes
+        # ===============================
+        - id: analytics-service
+          uri: lb://analytics-service
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - RewritePath=/api/analytics/(?<segment>.*), /api/analytics/${segment}
+
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+# ===============================
+# JWT Configuration
+# ===============================
+jwt:
+  secret: ${JWT_SECRET:fitness-microservice-jwt-secret-key-which-is-long-enough-for-hmac-sha256}
+  expiration: 86400000
+
+# ===============================
+# Actuator Configuration
+# ===============================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+  metrics:
+    tags:
+      application: api-gateway
+
+# ===============================
+# Logging
+# ===============================
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.fitness.gateway: DEBUG

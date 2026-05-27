@@ -1,0 +1,106 @@
+# ======================================
+# Fitness Platform Helm Values (Full)
+# ======================================
+
+namespace: fitness-platform
+
+image:
+  registry: ghcr.io/fitness-platform
+  pullPolicy: IfNotPresent
+  tag: latest
+
+# Service definitions
+services:
+  eureka:
+    replicas: 1
+    port: 8761
+    healthPath: /actuator/health
+  gateway:
+    replicas: 2
+    port: 8080
+    healthPath: /actuator/health
+    secrets: [jwt-secrets]
+  user-service:
+    replicas: 2
+    port: 8081
+    healthPath: /actuator/health
+    secrets: [db-secrets, jwt-secrets]
+  auth-service:
+    replicas: 2
+    port: 8082
+    healthPath: /actuator/health
+    secrets: [db-secrets, jwt-secrets]
+  activity-service:
+    replicas: 2
+    port: 8084
+    healthPath: /actuator/health
+  ai-service:
+    replicas: 2
+    port: 8083
+    healthPath: /actuator/health
+    secrets: [gemini-secrets]
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+  notification-service:
+    replicas: 1
+    port: 8085
+    healthPath: /actuator/health
+  analytics-service:
+    replicas: 2
+    port: 8086
+    healthPath: /actuator/health
+  frontend:
+    replicas: 2
+    port: 3000
+    healthPath: /
+
+# Resource defaults
+resources:
+  default:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilization: 70
+
+# Ingress
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    api: api.fitai.dev
+    app: fitai.dev
+
+# Infrastructure
+kafka:
+  bootstrapServers: kafka-service:9092
+redis:
+  host: redis-service
+  port: 6379
+
+# Secrets (override in CI/CD)
+secrets:
+  dbUsername: admin
+  dbPassword: admin
+  jwtSecret: fitness-microservice-jwt-secret-key-which-is-long-enough-for-hmac-sha256
+  geminiApiKey: your-api-key-here
+
+# Monitoring
+monitoring:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true

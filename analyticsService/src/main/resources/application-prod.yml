@@ -1,0 +1,57 @@
+# Production profile — connection pooling, optimized queries
+server:
+  port: 8086
+
+spring:
+  application:
+    name: analytics-service
+  profiles:
+    active: prod
+
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/fitnessAnalytics}
+      database: fitnessAnalytics
+      auto-index-creation: true
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 4
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: analytics-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        fetch.min.bytes: 1024
+        fetch.max.wait.ms: 500
+      max-poll-records: 100
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: analytics-service
+
+logging:
+  level:
+    root: WARN
+    com.fitness.analyticsService: INFO
+  pattern:
+    console: '{"timestamp":"%d","level":"%p","service":"analytics-service","message":"%m"}%n'

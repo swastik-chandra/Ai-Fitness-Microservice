@@ -3,7 +3,6 @@ package com.fitness.aiService.Service;
 import com.fitness.aiService.Repository.RecommendationRepository;
 import com.fitness.aiService.model.Recommendation;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

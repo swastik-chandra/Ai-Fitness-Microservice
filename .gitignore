@@ -1,0 +1,29 @@
+# Sensitive values — NOT committed to git
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!terraform.tfvars.example
+.terraform/
+
+# Environment
+.env
+.env.local
+.env.prod
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Build
+*/target/
+frontend/.next/
+frontend/node_modules/
+e2e/node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

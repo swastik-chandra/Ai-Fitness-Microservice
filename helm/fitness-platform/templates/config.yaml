@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: {{ .Values.namespace }}
+data:
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka:8761/eureka/"
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "{{ .Values.kafka.bootstrapServers }}"
+  SPRING_DATA_REDIS_HOST: "{{ .Values.redis.host }}"
+  SPRING_DATA_REDIS_PORT: "{{ .Values.redis.port | toString }}"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secrets
+  namespace: {{ .Values.namespace }}
+type: Opaque
+stringData:
+  DB_USERNAME: "{{ .Values.secrets.dbUsername }}"
+  DB_PASSWORD: "{{ .Values.secrets.dbPassword }}"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jwt-secrets
+  namespace: {{ .Values.namespace }}
+type: Opaque
+stringData:
+  JWT_SECRET: "{{ .Values.secrets.jwtSecret }}"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gemini-secrets
+  namespace: {{ .Values.namespace }}
+type: Opaque
+stringData:
+  GEMINI_API_KEY: "{{ .Values.secrets.geminiApiKey }}"
